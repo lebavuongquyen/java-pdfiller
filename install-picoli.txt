@@ -1,0 +1,1 @@
+mvn "install:install-file" "-Dfile=lib/picocli-4.7.5.jar" "-DgroupId=info.picocli" "-DartifactId=picocli" "-Dversion=4.7.5" "-Dpackaging=jar"

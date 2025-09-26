@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Filler Documentation</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 960px; margin: auto; background: white; padding: 2em; }
+        .header { background-color: #007bff; color: white; padding: 2em; text-align: center; }
+        h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #eee; padding-bottom: 0.3em; margin-top: 1.5em;}
+        code { background-color: #eef; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+        pre { background-color: #eef; padding: 1em; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+        th, td { border: 1px solid #ddd; padding: 0.8em; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .section { margin-bottom: 2em; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>PDF Filler Documentation</h1>
+</div>
+
+<div class="container">
+
+    <div class="section">
+        <h2>Overview</h2>
+        <p>This application allows users to fill PDF form fields programmatically. It can be operated in three ways:</p>
+        <ul>
+            <li>As a web server with a REST API.</li>
+            <li>As a command-line interface (CLI) tool.</li>
+            <li>Through a simple web interface for testing.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>1. Web Test Interface</h2>
+        <p>A simple user interface is available for testing the application's core functionality.</p>
+        <ul>
+            <li><strong>URL:</strong> <a href="/"><code>/</code></a> (root)</li>
+            <li><strong>Functionality:</strong> Allows uploading a PDF template, dynamically adding key-value data (for text and images), and generating the filled PDF.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. REST API</h2>
+        <p>The main way to interact with the service programmatically.</p>
+        
+        <h3>Endpoint: <code>POST /api/pdf/fill</code></h3>
+        <p>Fills a PDF form based on the provided data.</p>
+        <p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+
+        <h4>Parameters</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>source</code></td>
+                    <td>File</td>
+                    <td>Conditional</td>
+                    <td>The source PDF template file to be filled. Required if <code>sourceBase64</code> is not provided.</td>
+                </tr>
+                <tr>
+                    <td><code>sourceBase64</code></td>
+                    <td>String</td>
+                    <td>Conditional</td>
+                    <td>A Base64-encoded string of the source PDF template. Required if <code>source</code> is not provided.</td>
+                </tr>
+                <tr>
+                    <td><code>data</code></td>
+                    <td>String</td>
+                    <td>Yes</td>
+                    <td>A JSON string representing the data to fill into the PDF. The keys should match the PDF form field names. For images, the value should be a raw Base64 string of the image.</td>
+                </tr>
+                <tr>
+                    <td><code>flatten</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>If <code>true</code>, the form fields will be flattened, making them non-editable in the output PDF. Defaults to <code>false</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>filename</code></td>
+                    <td>String</td>
+                    <td>No</td>
+                    <td>If provided, the API will return the file as a download with this filename. If omitted, the API returns a Base64 string of the resulting PDF.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Example Usage (curl)</h4>
+        <pre><code>curl -X POST -F "source=@template.pdf" -F "data={"name":"John Doe","date":"2025-09-26"}" http://localhost:9001/api/pdf/fill</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Command-Line Interface (CLI)</h2>
+        <p>The application can be run from the command line using the scripts in the <code>dist</code> folder (after running the install script).</p>
+
+        <h3>Start Server</h3>
+        <p>Starts the HTTP server.</p>
+        <pre><code># On Windows
+pdffiller.bat start [port]
+
+# On Linux/macOS
+./pdffiller.sh start [port]</code></pre>
+        <p>If <code>port</code> is not provided, it defaults to 9001.</p>
+
+        <h3>Fill PDF</h3>
+        <p>Fills a PDF from the command line.</p>
+        <pre><code># On Windows
+pdffiller.bat fill [options]
+
+# On Linux/macOS
+./pdffiller.sh fill [options]</code></pre>
+        <p>The CLI options are handled by the application. Refer to the CLI's help message for more details on available options.</p>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Filler Test UI</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .form-group { margin-bottom: 1.5em; }
+        label { display: block; margin-bottom: .5em; font-weight: bold; color: #555; }
+        input[type="text"], input[type="file"], select, textarea { width: 100%; padding: .8em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { min-height: 150px; font-family: monospace; background-color: #eef; }
+        button { background-color: #007bff; color: white; padding: 0.8em 1.5em; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:hover { background-color: #0056b3; }
+        .field-row { display: flex; gap: 10px; align-items: center; margin-bottom: 1em; }
+        .field-row .field-key { flex: 2; } /* Key input takes more space */
+        .field-row .field-type { flex: 1; }
+        .field-row .value-input-container { flex: 3; } /* Value input takes most space */
+        .remove-btn { background-color: #dc3545; flex-shrink: 0; }
+        .remove-btn:hover { background-color: #c82333; }
+        #add-field-btn { background-color: #28a745; }
+        #add-field-btn:hover { background-color: #218838; }
+        .spinner { display: none; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PDF Filler Test UI</h1>
+    <form id="fill-form">
+        <div class="form-group">
+            <label for="source">PDF Template File</label>
+            <input type="file" id="source" name="source" accept=".pdf">
+        </div>
+        <div class="form-group">
+            <input type="checkbox" id="send-as-base64" name="send-as-base64" style="width: auto;">
+            <label for="send-as-base64" style="display: inline;">Send as Base64</label>
+        </div>
+
+        <div class="form-group">
+            <label>Form Data (Key-Value Pairs)</label>
+            <div id="fields-container">
+                <!-- Dynamic fields will be added here -->
+            </div>
+            <button type="button" id="add-field-btn">+ Add Field</button>
+        </div>
+
+        <div class="form-group">
+            <label for="json-preview">Live JSON Data View</label>
+            <textarea id="json-preview" readonly></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="filename">Output Filename (e.g., filled.pdf)</label>
+            <input type="text" id="filename" name="filename" value="filled.pdf">
+        </div>
+        
+        <div class="form-group">
+            <input type="checkbox" id="flatten" name="flatten" style="width: auto;">
+            <label for="flatten" style="display: inline;">Flatten PDF (make fields non-editable)</label>
+        </div>
+
+        <button type="submit">Generate PDF</button>
+    </form>
+    <div id="spinner" class="spinner"></div>
+</div>
+
+<template id="field-template">
+    <div class="field-row">
+        <input type="text" class="field-key" placeholder="Field Name in PDF">
+        <select class="field-type">
+            <option value="text">Text</option>
+            <option value="image">Image</option>
+        </select>
+        <div class="value-input-container">
+            <input type="text" class="field-value" placeholder="Value">
+        </div>
+        <button type="button" class="remove-btn">Remove</button>
+    </div>
+</template>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const addFieldBtn = document.getElementById('add-field-btn');
+    const fieldsContainer = document.getElementById('fields-container');
+    const fieldTemplate = document.getElementById('field-template');
+    const form = document.getElementById('fill-form');
+    const spinner = document.getElementById('spinner');
+    const jsonPreview = document.getElementById('json-preview');
+
+    const updateJsonPreview = async () => {
+        const jsonData = {};
+        const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+        
+        const promises = Array.from(fieldRows).map(async (row) => {
+            const key = row.querySelector('.field-key').value;
+            const type = row.querySelector('.field-type').value;
+            const valueInput = row.querySelector('.field-value');
+
+            if (!key) return;
+
+            if (type === 'image' && valueInput.files && valueInput.files[0]) {
+                try {
+                    jsonData[key] = await fileToBase64(valueInput.files[0]);
+                } catch (error) {
+                    jsonData[key] = `Error: ${error.message}`;
+                }
+            } else {
+                jsonData[key] = valueInput.value;
+            }
+        });
+
+        await Promise.all(promises);
+        jsonPreview.value = JSON.stringify(jsonData, null, 2);
+    };
+
+    fieldsContainer.addEventListener('input', updateJsonPreview);
+    fieldsContainer.addEventListener('change', updateJsonPreview); // For file inputs
+
+    const addField = () => {
+        const newField = fieldTemplate.content.cloneNode(true);
+        const newRow = newField.querySelector('.field-row');
+        fieldsContainer.appendChild(newField);
+        
+        newRow.querySelector('.field-type').addEventListener('change', (e) => {
+            const valueContainer = newRow.querySelector('.value-input-container');
+            if (e.target.value === 'image') {
+                valueContainer.innerHTML = `<input type="file" class="field-value" accept="image/*">
+`;
+            } else {
+                valueContainer.innerHTML = `<input type="text" class="field-value" placeholder="Value">
+`;
+            }
+            updateJsonPreview();
+        });
+
+        newRow.querySelector('.remove-btn').addEventListener('click', () => {
+            newRow.remove();
+            updateJsonPreview();
+        });
+        
+        updateJsonPreview();
+    };
+
+    addFieldBtn.addEventListener('click', addField);
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        spinner.style.display = 'block';
+
+        await updateJsonPreview(); 
+        const jsonDataString = jsonPreview.value;
+        const formData = new FormData();
+        const sourceFile = document.getElementById('source').files[0];
+
+        if (!sourceFile) {
+            alert('Please select a PDF template file.');
+            spinner.style.display = 'none';
+            return;
+        }
+
+        // Handle source type based on checkbox
+        const sendAsBase64 = document.getElementById('send-as-base64').checked;
+        if (sendAsBase64) {
+            try {
+                const base64String = await fileToBase64(sourceFile);
+                formData.append('sourceBase64', base64String);
+            } catch (error) {
+                alert('Failed to convert source PDF to Base64.');
+                spinner.style.display = 'none';
+                return;
+            }
+        } else {
+            formData.append('source', sourceFile);
+        }
+
+        formData.append('data', jsonDataString);
+        formData.append('flatten', document.getElementById('flatten').checked);
+        
+        const filename = document.getElementById('filename').value;
+        if (filename) {
+            formData.append('filename', filename);
+        }
+
+        try {
+            const response = await fetch('/api/pdf/fill', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename || 'filled.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred: ' + error.message);
+        } finally {
+            spinner.style.display = 'none';
+        }
+    });
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
+                if ((encoded.length % 4) > 0) {
+                    encoded += '='.repeat(4 - (encoded.length % 4));
+                }
+                resolve(encoded);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+    
+    // Add one field by default for convenience
+    addField();
+});
+</script>
+
+</body>
+</html>

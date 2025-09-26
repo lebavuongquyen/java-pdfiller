@@ -1,0 +1,1 @@
+mvn "install:install-file" "-Dfile=lib/itextpdf-5.5.13.3.jar" "-DgroupId=com.itextpdf" "-DartifactId=itextpdf" "-Dversion=5.5.13.3" "-Dpackaging=jar"
