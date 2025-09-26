@@ -23,12 +23,12 @@ To create a portable, distributable version of the application, run the appropri
 
 **On Windows:**
 ```bash
-bin\install.bat
+shell\install.bat
 ```
 
 **On Linux/macOS:**
 ```bash
-bash bin/install.sh
+bash shell/install.sh
 ```
 
 This script will perform the following actions:
